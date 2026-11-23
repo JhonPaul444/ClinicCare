@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle='Specializations'; $pageDescription='Manage clinic medical specializations.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='specializations';
 $tableHeading='Medical specializations'; $tableFilters=['Active','Inactive']; $tableHeaders=['Specialization','Description','Doctors','Status'];
 $tableRows=[];

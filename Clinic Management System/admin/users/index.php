@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle='Users'; $pageDescription='Manage system user accounts.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='users';
 $tableHeading='System users'; $tableFilters=['Admin','Receptionist','Doctor']; $tableFilterLabel='All roles'; $tableHeaders=['Name','Username','Role','Account status'];
 $tableRows=[];

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle='Reports'; $pageDescription='Basic patient and appointment reports.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='reports';
 $tableHeading='Recent report summaries'; $tableFilters=[]; $tableHeaders=['Report','Period','Summary','Updated'];
 $tableRows=[];

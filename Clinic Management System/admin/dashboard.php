@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle = 'Dashboard'; $pageDescription = 'Admin overview of ClinicCare appointments, patients, and doctors.'; $bodyClass = 'admin-app'; $appBasePath = '..'; $activeAdminPage = 'dashboard';
 require __DIR__ . '/../includes/header.php';
 ?>

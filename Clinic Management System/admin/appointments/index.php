@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle='Appointments'; $pageDescription='Monitor clinic appointments.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='appointments';
 $tableHeading='All appointments'; $tableFilters=['Scheduled','Completed','Cancelled','No-show'];
 $tableHeaders=['Patient','Doctor','Date & time','Reason','Status'];

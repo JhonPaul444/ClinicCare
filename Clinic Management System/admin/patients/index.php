@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle='Patients'; $pageDescription='Review patient profiles.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='patients';
 $tableHeading='All patients'; $tableFilters=[]; $tableHeaders=['Patient','Patient ID','Last visit','Contact','Address'];
 $tableRows=[];

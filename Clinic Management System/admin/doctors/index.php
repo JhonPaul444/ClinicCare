@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
 $pageTitle='Doctors'; $pageDescription='Manage doctor profiles and specializations.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='doctors';
 $tableHeading='All doctors'; $tableFilters=['Active','Inactive']; $tableHeaders=['Doctor','Specialization','Profile status','Appointments'];
 $tableRows=[];
