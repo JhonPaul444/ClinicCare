@@ -1,7 +1,7 @@
 <?php
 $pageTitle='Users'; $pageDescription='Manage system user accounts.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='users';
 $tableHeading='System users'; $tableFilters=['Admin','Receptionist','Doctor']; $tableFilterLabel='All roles'; $tableHeaders=['Name','Username','Role','Account status'];
-$tableRows=[['Avery Morgan','admin.demo','Admin','Active'],['Taylor Reed','reception.demo','Receptionist','Active'],['Olivia Chen','doctor.chen','Doctor','Active'],['Marcus Lee','doctor.lee','Doctor','Inactive']];
+$tableRows=[];
 require __DIR__.'/../../includes/header.php';
 ?>
 <div class="app-layout"><?php require __DIR__.'/../../includes/sidebar.php'; ?><main class="app-main"><?php require __DIR__.'/../../includes/admin_topbar.php'; ?><div class="page-content">

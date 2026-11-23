@@ -8,12 +8,12 @@ require __DIR__ . '/../includes/header.php';
         <?php require __DIR__ . '/../includes/admin_topbar.php'; ?>
         <div class="page-content">
             <section class="page-hero dashboard-hero"><div><span class="hero-kicker">CLINIC MANAGEMENT</span><h1>Dashboard</h1><p>Welcome back to your clinic dashboard.</p></div><span class="hero-watermark" aria-hidden="true">▦</span></section>
-            <div class="preview-notice"><span class="notice-dot"></span> Frontend preview with fictional sample content</div>
+            <div class="preview-notice"><span class="notice-dot"></span> No clinic records have been added yet.</div>
             <section class="metric-grid" aria-label="Clinic summary">
-                <article class="metric-card"><div class="metric-top"><span>Appointments</span><span class="metric-icon metric-blue">▦</span></div><strong>14</strong><small><span class="metric-positive">Today</span> scheduled appointments</small></article>
-                <article class="metric-card"><div class="metric-top"><span>Patients</span><span class="metric-icon metric-violet">♙</span></div><strong>120</strong><small>Registered patient profiles</small></article>
-                <article class="metric-card"><div class="metric-top"><span>Doctors</span><span class="metric-icon metric-teal">✚</span></div><strong>8</strong><small>Active doctor profiles</small></article>
-                <article class="metric-card"><div class="metric-top"><span>Scheduled</span><span class="metric-icon metric-cyan">◷</span></div><strong>9</strong><small>Upcoming appointments</small></article>
+                <article class="metric-card"><div class="metric-top"><span>Appointments</span><span class="metric-icon metric-blue">▦</span></div><strong>0</strong><small><span class="metric-positive">Today</span> scheduled appointments</small></article>
+                <article class="metric-card"><div class="metric-top"><span>Patients</span><span class="metric-icon metric-violet">♙</span></div><strong>0</strong><small>Registered patient profiles</small></article>
+                <article class="metric-card"><div class="metric-top"><span>Doctors</span><span class="metric-icon metric-teal">✚</span></div><strong>0</strong><small>Active doctor profiles</small></article>
+                <article class="metric-card"><div class="metric-top"><span>Scheduled</span><span class="metric-icon metric-cyan">◷</span></div><strong>0</strong><small>Upcoming appointments</small></article>
             </section>
             <section class="quick-actions-card">
                 <div class="section-heading"><div><h2>Quick actions</h2><p>Common clinic management tasks</p></div><span class="soft-tag">FAST ACCESS</span></div>
@@ -24,11 +24,9 @@ require __DIR__ . '/../includes/header.php';
                 </div>
             </section>
             <section class="data-card dashboard-appointments">
-                <div class="data-card-heading"><div><h2>Recent appointments</h2><p>Sample appointments for layout preview</p></div><a class="btn btn-outline-secondary btn-sm" href="appointments/index.php">View all <span aria-hidden="true">→</span></a></div>
+                <div class="data-card-heading"><div><h2>Recent appointments</h2><p>Latest clinic bookings</p></div><a class="btn btn-outline-secondary btn-sm" href="appointments/index.php">View all <span aria-hidden="true">→</span></a></div>
                 <div class="table-responsive"><table class="table clinic-table mb-0"><thead><tr><th>Patient</th><th>Doctor</th><th>Date &amp; time</th><th>Status</th></tr></thead><tbody>
-                    <tr><td>Emma Wilson</td><td>Dr. Olivia Chen</td><td>Today, 9:30 AM</td><td><span class="status-pill status-scheduled">Scheduled</span></td></tr>
-                    <tr><td>James Miller</td><td>Dr. Marcus Lee</td><td>Today, 11:00 AM</td><td><span class="status-pill status-completed">Completed</span></td></tr>
-                    <tr><td>Sophia Brown</td><td>Dr. Olivia Chen</td><td>Tomorrow, 2:15 PM</td><td><span class="status-pill status-scheduled">Scheduled</span></td></tr>
+                    <tr><td colspan="4" class="text-center">No appointments yet.</td></tr>
                 </tbody></table></div>
             </section>
         </div>

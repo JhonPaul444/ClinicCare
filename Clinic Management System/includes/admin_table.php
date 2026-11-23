@@ -2,7 +2,7 @@
     <div class="data-card-heading">
         <div>
             <h2><?php echo htmlspecialchars($tableHeading ?? 'All records', ENT_QUOTES, 'UTF-8'); ?></h2>
-            <p><?php echo count($tableRows ?? []); ?> sample records</p>
+            <p><?php echo count($tableRows ?? []); ?> records</p>
         </div>
         <div class="table-tools">
             <?php if (!empty($tableFilters)): ?>
@@ -31,9 +31,9 @@
                         <?php endforeach; ?>
                     </tr>
                 <?php endforeach; ?>
-                <tr class="empty-table-row" data-empty-row hidden><td colspan="<?php echo max(1, count($tableHeaders)); ?>">No matching records. Try a different search or filter.</td></tr>
+                <?php if (empty($tableRows)): ?><tr class="empty-table-row"><td colspan="<?php echo max(1, count($tableHeaders)); ?>">No records yet.</td></tr><?php else: ?><tr class="empty-table-row" data-empty-row hidden><td colspan="<?php echo max(1, count($tableHeaders)); ?>">No matching records. Try a different search or filter.</td></tr><?php endif; ?>
             </tbody>
         </table>
     </div>
-    <div class="data-card-footer"><span>Preview data only</span><span>Backend connection required for live records</span></div>
+    <div class="data-card-footer"><span>No records have been added</span><span>Live records require backend integration</span></div>
 </section>
