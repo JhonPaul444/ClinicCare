@@ -10,7 +10,7 @@ The backend expects the shared `cliniccare_pdo()` function from `config/database
 
 - Base URL: `api/index.php?resource=<resource>[/<id>]`
 - Use JSON request bodies (`Content-Type: application/json`) or regular form bodies.
-- Mutating requests require the session's CSRF token in `X-CSRF-Token` (or `_csrf` for forms). Obtain a pre-login token from `GET ?resource=auth/csrf`; successful login returns a fresh authenticated token too.
+- Mutating requests require the session's CSRF token in `X-CSRF-Token` (or `_csrf` for forms), including login. Obtain a pre-login token from `GET ?resource=auth/csrf`; successful login returns a fresh authenticated token too.
 - Responses are JSON with `data`, `message`, or `error`. Validation errors use HTTP 422; unauthenticated requests use 401; disallowed roles use 403; conflicts use 409.
 
 ## Routes
@@ -24,7 +24,8 @@ The backend expects the shared `cliniccare_pdo()` function from `config/database
 | GET, PUT, PATCH | `patients/{id}` | Admin, Receptionist; details, update demographics, set status |
 | GET, POST | `users` | Admin; list/create accounts |
 | GET, PUT | `users/{id}` | Admin; view or update profile, role, status, optional password |
-| GET, POST | `doctors` | Admin; list/create profiles |
+| GET | `doctors` | Admin, Receptionist; list profiles for appointment booking |
+| POST | `doctors` | Admin; create profiles |
 | GET, PUT, PATCH | `doctors/{id}` | Admin; details, specialization/license update, activate/deactivate |
 | GET, POST | `specializations` | Admin; list/create |
 | PUT | `specializations/{id}` | Admin; update or deactivate |
@@ -33,7 +34,7 @@ The backend expects the shared `cliniccare_pdo()` function from `config/database
 | PATCH | `schedules/{id}` | Admin; activate/deactivate |
 | GET | `dashboard` | Role-specific Admin/Receptionist/Doctor summary counts |
 | GET, POST | `appointments` | Admin/Receptionist list or book; Doctor sees own assignments |
-| GET, PUT, PATCH | `appointments/{id}` | Get authorized details; reschedule (Admin/Receptionist); update status (authorized staff/assigned Doctor) |
+| GET, PUT, PATCH | `appointments/{id}` | Get authorized details; reschedule (Admin/Receptionist); cancel or mark No-show while Scheduled |
 | GET, POST | `medical-records` | Admin can view; Doctor can view authorized history/create a consultation record |
 | GET | `reports` | Admin, Receptionist; date range totals by status and doctor |
 
@@ -44,8 +45,10 @@ Medical-record lists can be filtered by `patient_id`; doctor results remain limi
 
 Sessions regenerate their ID on login, use HTTP-only/SameSite cookies, and require CSRF tokens on state changes. Queries use PDO prepared statements. Role checks are enforced in the API and existing role page entry points. Patient and medical-record fields are selected separately so receptionist patient routes do not return diagnoses or notes.
 
-Appointment creation and rescheduling transact and lock doctor rows in ascending ID order before checking active users/profiles, patient status, schedule coverage, and time conflicts. Conflict intervals use `[start,end)` semantics and omit Cancelled appointments. Schedule changes lock the doctor and reject overlap or removal of coverage for existing upcoming appointments. A doctor can create one record for an appointment assigned to their profile; this atomically completes the appointment.
+Appointment creation and rescheduling transact and lock doctor rows in ascending ID order before checking active users/profiles, patient status, schedule coverage, and time conflicts. Conflict intervals use `[start,end)` semantics and omit Cancelled appointments. Schedule changes lock the doctor and reject overlap or removal of coverage for existing upcoming appointments. A doctor can create one record for an appointment assigned to their profile; this atomically completes the appointment. The appointment status endpoint does not accept `Completed`, so completion only occurs with record creation in the same transaction.
 
 ## Pending group confirmation
 
-The prompt says patient gender options are still being decided. The backend does not invent a list; when PALO's approved schema defines `gender` as an `ENUM`, validation follows those exact database options. If it is a free-text column, the approved values still need confirmation from the group and frontend before final validation can be completed. Column character limits are read from MySQL metadata.
+The current `database/schema.sql` defines `patients.gender` as `VARCHAR(30)`. The group has not confirmed an allowed-value list, so the interface accepts a required text value and the backend enforces the database length without inventing options. Confirm the approved values before replacing the text input with a dropdown or adding an allowlist. Other column lengths are read from MySQL metadata.
+
+For XAMPP setup and the one-time local Admin creation process, see [setup.md](setup.md). The web frontend calls these endpoints with same-origin session cookies and a CSRF token.

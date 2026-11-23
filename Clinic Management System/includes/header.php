@@ -3,6 +3,8 @@ $pageTitle = $pageTitle ?? 'ClinicCare';
 $pageDescription = $pageDescription ?? 'Clinic appointment and patient records management.';
 $bodyClass = $bodyClass ?? '';
 $appBasePath = $appBasePath ?? '.';
+$styleAssetPath = __DIR__ . '/../assets/css/style.css';
+$styleVersion = is_file($styleAssetPath) ? (string)filemtime($styleAssetPath) : '1';
 ?>
 <!doctype html>
 <html lang="en">
@@ -16,6 +18,6 @@ $appBasePath = $appBasePath ?? '.';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.9/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-yEPZ7jP9S0QKiUQ0m3jjsO4ProIW7wvR9gXkI7JOGa2XVsw53Yke2bsdkBbjmmiX" crossorigin="anonymous">
-    <link href="<?php echo htmlspecialchars($appBasePath, ENT_QUOTES, 'UTF-8'); ?>/assets/css/style.css" rel="stylesheet">
+    <link href="<?php echo htmlspecialchars($appBasePath, ENT_QUOTES, 'UTF-8'); ?>/assets/css/style.css?v=<?php echo htmlspecialchars($styleVersion, ENT_QUOTES, 'UTF-8'); ?>" rel="stylesheet">
 </head>
 <body class="<?php echo htmlspecialchars($bodyClass, ENT_QUOTES, 'UTF-8'); ?>">

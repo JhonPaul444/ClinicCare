@@ -1,13 +1,7 @@
 <?php
-require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
-$pageTitle='Specializations'; $pageDescription='Manage clinic medical specializations.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='specializations';
-$tableHeading='Medical specializations'; $tableFilters=['Active','Inactive']; $tableHeaders=['Specialization','Description','Doctors','Status'];
-$tableRows=[];
-require __DIR__.'/../../includes/header.php';
-?>
-<div class="app-layout"><?php require __DIR__.'/../../includes/sidebar.php'; ?><main class="app-main"><?php require __DIR__.'/../../includes/admin_topbar.php'; ?><div class="page-content">
-    <section class="page-hero"><div><span class="hero-kicker">CLINIC MANAGEMENT</span><h1>Specializations</h1><p>Manage the medical specialties offered by the clinic.</p></div><button class="btn hero-action" type="button" data-demo-action="Specialization creation">＋ <span>Add specialization</span></button></section>
-    <div class="preview-notice"><span class="notice-dot"></span> No specializations have been added yet.</div>
-    <?php require __DIR__.'/../../includes/admin_table.php'; ?>
-</div></main></div>
-<?php require __DIR__.'/../../includes/footer.php'; ?>
+require_once __DIR__ . '/../../includes/page_guard.php';
+$currentUser = cliniccare_page_guard(['Admin']);
+$appRole = 'Admin'; $activePage = 'specializations'; $pageKey = 'specializations';
+$pageTitle = 'Specializations'; $pageIntro = 'Manage the clinic specialties offered by doctors.'; $actionLabel = 'Add specialization';
+$bodyClass = 'admin-app'; $appBasePath = '../..';
+require __DIR__ . '/../../includes/management_page.php';

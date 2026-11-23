@@ -1,13 +1,7 @@
 <?php
-require_once __DIR__ . '/../../includes/page_guard.php'; cliniccare_page_guard(['Admin']);
-$pageTitle='Users'; $pageDescription='Manage system user accounts.'; $bodyClass='admin-app'; $appBasePath='../..'; $activeAdminPage='users';
-$tableHeading='System users'; $tableFilters=['Admin','Receptionist','Doctor']; $tableFilterLabel='All roles'; $tableHeaders=['Name','Username','Role','Account status'];
-$tableRows=[];
-require __DIR__.'/../../includes/header.php';
-?>
-<div class="app-layout"><?php require __DIR__.'/../../includes/sidebar.php'; ?><main class="app-main"><?php require __DIR__.'/../../includes/admin_topbar.php'; ?><div class="page-content">
-    <section class="page-hero"><div><span class="hero-kicker">ADMINISTRATION</span><h1>Users</h1><p>Review role-based system accounts.</p></div><button class="btn hero-action" type="button" data-demo-action="User account creation">＋ <span>Add user</span></button></section>
-    <div class="preview-notice"><span class="notice-dot"></span> Passwords and credentials are never shown in this preview</div>
-    <?php require __DIR__.'/../../includes/admin_table.php'; ?>
-</div></main></div>
-<?php require __DIR__.'/../../includes/footer.php'; ?>
+require_once __DIR__ . '/../../includes/page_guard.php';
+$currentUser = cliniccare_page_guard(['Admin']);
+$appRole = 'Admin'; $activePage = 'users'; $pageKey = 'users';
+$pageTitle = 'Users'; $pageIntro = 'Manage active clinic accounts and their roles.'; $actionLabel = 'Add user';
+$bodyClass = 'admin-app'; $appBasePath = '../..';
+require __DIR__ . '/../../includes/management_page.php';

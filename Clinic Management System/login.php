@@ -1,4 +1,11 @@
 <?php
+require_once __DIR__ . '/includes/auth.php';
+cliniccare_start_session();
+header('Cache-Control: no-store, private, max-age=0');
+header('Pragma: no-cache');
+$loginError = (string)($_SESSION['login_error'] ?? '');
+unset($_SESSION['login_error']);
+$loginCsrf = cliniccare_csrf_token();
 $pageTitle = 'Sign in';
 $pageDescription = 'Sign in to ClinicCare to manage clinic appointments and patient records.';
 $bodyClass = 'login-page';
@@ -52,11 +59,9 @@ require __DIR__ . '/includes/header.php';
                 <p>Enter your clinic account details to continue.</p>
             </div>
 
-            <!-- Authentication processing and the final form action will be connected by the backend developer. -->
-            <form class="login-form" action="" method="post" autocomplete="on">
-                <div id="login-message" class="alert alert-danger login-message" role="alert" aria-live="polite" hidden>
-                    <!-- Backend-provided sign-in errors can be rendered here after integration. -->
-                </div>
+            <form class="login-form" action="auth/login_process.php" method="post" autocomplete="on">
+                <div id="login-message" class="alert alert-danger login-message" role="alert" aria-live="polite"<?php echo $loginError === '' ? ' hidden' : ''; ?>><?php echo htmlspecialchars($loginError, ENT_QUOTES, 'UTF-8'); ?></div>
+                <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($loginCsrf, ENT_QUOTES, 'UTF-8'); ?>">
 
                 <div class="mb-4">
                     <label for="username" class="form-label">Username</label>
