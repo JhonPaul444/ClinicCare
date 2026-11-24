@@ -64,6 +64,31 @@ function cliniccare_time(string $value, string $label): string
     return strlen($value) === 5 ? $value . ':00' : $value;
 }
 
+function cliniccare_appointment_schedule_error(array $activeSchedules, string $date, string $startTime, string $endTime): ?string
+{
+    $appointmentDate = new DateTimeImmutable($date);
+    $dayName = $appointmentDate->format('l');
+    if ($activeSchedules === []) {
+        return "No active schedule exists for this doctor on {$dayName}. Choose another date or doctor.";
+    }
+
+    foreach ($activeSchedules as $schedule) {
+        if ((string)$schedule['start_time'] <= $startTime && (string)$schedule['end_time'] >= $endTime) {
+            return null;
+        }
+    }
+
+    $formatTime = static fn(string $time): string => (new DateTimeImmutable($date . ' ' . $time))->format('g:i A');
+    $ranges = array_map(
+        static fn(array $schedule): string => $formatTime((string)$schedule['start_time']) . '–' . $formatTime((string)$schedule['end_time']),
+        $activeSchedules
+    );
+    $available = implode(', ', $ranges);
+    $appointmentEnd = $formatTime($endTime);
+
+    return "The appointment ends at {$appointmentEnd}, outside the doctor's active {$dayName} hours ({$available}). Choose a start time and duration that fit fully within one schedule.";
+}
+
 function cliniccare_length(PDO $pdo, string $table, string $column, string $value, string $label, bool $required = true): void
 {
     if ($required && trim($value) === '') cliniccare_json(['error' => "$label is required."], 422);

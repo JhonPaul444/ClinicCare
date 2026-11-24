@@ -385,6 +385,108 @@
         return wrapper;
     };
 
+    const attachAppointmentScheduleGuidance = (submitButton) => {
+        const doctorInput=form.querySelector('[name="doctor_id"]');
+        const dateInput=form.querySelector('[name="appointment_date"]');
+        const timeInput=form.querySelector('[name="appointment_time"]');
+        const durationInput=form.querySelector('[name="duration_minutes"]');
+        if(!doctorInput||!dateInput||!timeInput||!durationInput)return;
+
+        const guidance=document.createElement('div');
+        guidance.className='alert alert-info appointment-schedule-guidance mb-3';
+        guidance.setAttribute('role','status');
+        guidance.setAttribute('aria-live','polite');
+        guidance.textContent='Choose a doctor to view their active working days and hours.';
+        form.insertBefore(guidance,submitButton.parentElement);
+
+        const weekdayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        let activeSchedules=[];
+        let requestVersion=0;
+        const minutesOf=(value)=>{
+            const parts=String(value||'').split(':').map(Number);
+            return (parts[0]||0)*60+(parts[1]||0);
+        };
+        const displayTime=(minutes)=>{
+            const hour=Math.floor(minutes/60)%24;
+            const minute=minutes%60;
+            return new Date(2000,0,1,hour,minute).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+        };
+        const dayNumber=(date)=>{
+            const jsDay=new Date(`${date}T12:00:00`).getDay();
+            return jsDay===0?7:jsDay;
+        };
+        const activeDaySummary=()=>weekdayNames.map((name,index)=>{
+            const rows=activeSchedules.filter((item)=>Number(item.available_day)===index+1);
+            if(!rows.length)return `${name}: no active hours`;
+            return `${name}: ${rows.map((item)=>`${displayTime(minutesOf(item.start_time))}–${displayTime(minutesOf(item.end_time))}`).join(', ')}`;
+        }).join(' · ');
+        const showGuidance=(message,kind='info')=>{
+            guidance.className=`alert alert-${kind} appointment-schedule-guidance mb-3`;
+            guidance.textContent=message;
+        };
+        const validateSelection=()=>{
+            dateInput.setCustomValidity('');
+            timeInput.setCustomValidity('');
+            const doctorId=doctorInput.value;
+            const selectedDate=dateInput.value;
+            if(!doctorId){showGuidance('Choose a doctor to view their active working days and hours.');return;}
+            const weekly=activeDaySummary();
+            if(!selectedDate){showGuidance(`Active working hours: ${weekly}. Choose an appointment date to check that day.`);return;}
+            const selectedDay=dayNumber(selectedDate);
+            const dayName=weekdayNames[selectedDay-1];
+            const daySchedules=activeSchedules.filter((item)=>Number(item.available_day)===selectedDay);
+            if(!daySchedules.length){
+                const message=`No active schedule exists for this doctor on ${dayName}, ${selectedDate}. Choose another date or doctor.`;
+                dateInput.setCustomValidity(message);
+                showGuidance(`${message} Active working days: ${weekly}.`,'warning');
+                return;
+            }
+            if(!timeInput.value||!durationInput.value){
+                const ranges=daySchedules.map((item)=>`${displayTime(minutesOf(item.start_time))}–${displayTime(minutesOf(item.end_time))}`).join(', ');
+                showGuidance(`Active hours for ${dayName}: ${ranges}. Enter a start time and duration to check coverage.`);
+                return;
+            }
+            const start=minutesOf(timeInput.value);
+            const duration=Number(durationInput.value);
+            const end=start+duration;
+            if(!Number.isInteger(duration)||duration<1){showGuidance(`Active working hours: ${weekly}. Enter a valid duration.`,'warning');return;}
+            if(end>1440){
+                const message='The appointment would continue past midnight. Choose an earlier start time or shorter duration.';
+                timeInput.setCustomValidity(message);showGuidance(message,'warning');return;
+            }
+            const fits=daySchedules.some((item)=>minutesOf(item.start_time)<=start&&minutesOf(item.end_time)>=end);
+            if(!fits){
+                const endLabel=displayTime(end);
+                const ranges=daySchedules.map((item)=>`${displayTime(minutesOf(item.start_time))}–${displayTime(minutesOf(item.end_time))}`).join(', ');
+                const message=`This appointment ends at ${endLabel} and does not fit within one active ${dayName} schedule (${ranges}). Choose an earlier time or shorter duration.`;
+                timeInput.setCustomValidity(message);showGuidance(message,'warning');return;
+            }
+            showGuidance(`This appointment fits an active ${dayName} schedule. Active working hours: ${weekly}.`,'success');
+        };
+        const loadSchedules=async()=>{
+            const currentVersion=++requestVersion;
+            doctorInput.setCustomValidity('');dateInput.setCustomValidity('');timeInput.setCustomValidity('');
+            if(!doctorInput.value){activeSchedules=[];submitButton.disabled=false;validateSelection();return;}
+            submitButton.disabled=true;
+            showGuidance('Loading this doctor’s active working hours…');
+            try{
+                const payload=await request('schedules',{params:{doctor_id:doctorInput.value}});
+                if(currentVersion!==requestVersion)return;
+                activeSchedules=asArray(payload).filter((item)=>String(item.status).toLowerCase()==='active');
+                validateSelection();
+            }catch(error){
+                if(currentVersion===requestVersion){activeSchedules=[];showGuidance(`Could not load this doctor’s active schedule. ${error.message}`,'warning');}
+            }finally{
+                if(currentVersion===requestVersion)submitButton.disabled=false;
+            }
+        };
+        doctorInput.addEventListener('change',loadSchedules);
+        dateInput.addEventListener('change',loadSchedules);
+        timeInput.addEventListener('input',validateSelection);
+        durationInput.addEventListener('input',validateSelection);
+        loadSchedules();
+    };
+
     const openForm = async (row = null, preset = {}) => {
         formEntityType=preset.formType || pageType;
         const cfg=configs[formEntityType];
@@ -404,6 +506,7 @@
         const controls=document.createElement('div'); controls.className='d-flex gap-2'; form.append(controls);
         const save=document.createElement('button'); save.type='submit'; save.className='btn btn-primary'; save.textContent=row?'Save changes':'Save'; controls.append(save);
         const cancel=document.createElement('button'); cancel.type='button'; cancel.className='btn btn-outline-secondary'; cancel.textContent='Close'; cancel.addEventListener('click',()=>{form.classList.add('d-none');}); controls.append(cancel);
+        if(role==='Receptionist'&&formEntityType==='appointments')attachAppointmentScheduleGuidance(save);
         form.scrollIntoView({behavior:'smooth',block:'start'});
     };
 

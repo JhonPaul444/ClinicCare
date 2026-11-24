@@ -257,6 +257,7 @@ a { color: var(--clinic-primary); }
 .page-content[data-app-role="Receptionist"] .appointment-search { flex: 1 1 180px; min-width: 150px; }
 .page-content[data-app-role="Receptionist"] .appointment-search .form-control { width: 100%; min-width: 0; }
 .page-content[data-app-role="Receptionist"] .appointment-search-submit { flex: 0 0 auto; min-width: 78px; white-space: nowrap; }
+.appointment-schedule-guidance { white-space: normal; line-height: 1.55; overflow-wrap: anywhere; }
 .page-content[data-app-role="Receptionist"] .record-actions { min-width: max-content; }
 .page-content[data-app-role="Receptionist"] .record-actions .btn { margin: 0 5px 0 0 !important; white-space: nowrap; }
 .page-content[data-app-role="Receptionist"] .report-empty-state td { padding: 16px; background: #fbfcff; color: #6f7f93 !important; }
