@@ -222,6 +222,11 @@ a { color: var(--clinic-primary); }
 .metric-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 17px; }
 .metric-card,.quick-actions-card,.data-card { overflow: hidden; border: 1px solid #edf0f5; border-radius: 15px; background: #fff; box-shadow: 0 6px 18px rgba(34,57,89,.055); }
 .metric-card { min-height: 167px; padding: 21px 22px; }
+.metric-card-link { display: block; min-width: 0; border-radius: 15px; color: inherit; cursor: pointer; text-decoration: none; }
+.metric-card-link > .metric-card { height: 100%; transition: transform .16s ease,box-shadow .16s ease,border-color .16s ease; }
+.metric-card-link:hover,.metric-card-link:focus { color: inherit; text-decoration: none; }
+.metric-card-link:hover > .metric-card { transform: translateY(-2px); border-color: #d9e3f5; box-shadow: 0 10px 24px rgba(34,57,89,.1); }
+.metric-card-link:focus-visible { outline: 3px solid rgba(47,99,223,.38); outline-offset: 3px; }
 .metric-top { display: flex; align-items: center; justify-content: space-between; color: #657385; font-size: .85rem; }
 .metric-icon { display: inline-grid; width: 43px; height: 43px; place-items: center; border-radius: 12px; color: #fff; font-size: 1.2rem; box-shadow: 0 6px 12px rgba(42,86,180,.15); }
 .metric-blue { background: linear-gradient(145deg,#4287f8,#2458d2); }.metric-violet { background: linear-gradient(145deg,#7a64ef,#5141c7); }.metric-teal { background: linear-gradient(145deg,#44bdc3,#168b9d); }.metric-cyan { background: linear-gradient(145deg,#49a8da,#2679bd); }
@@ -283,6 +288,45 @@ a { color: var(--clinic-primary); }
 .report-doctor-card .clinic-table { min-width: 720px; }
 .report-doctor-card .clinic-table tbody td:nth-child(n+3) { font-variant-numeric: tabular-nums; }
 .report-print-header { display: none; }
+.weekly-schedule-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.weekly-day-card { min-width: 0; padding: 14px; border: 1px solid #e4ebf0; border-radius: 12px; background: #fff; }
+.weekly-day-card.is-unavailable { background: #f8f9fb; }
+.weekly-day-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.weekly-day-header h3 { margin: 0; color: #334258; font-size: .87rem; font-weight: 700; }
+.weekly-day-toggle { display: inline-flex; align-items: center; gap: 7px; color: #64758a; font-size: .72rem; white-space: nowrap; }
+.weekly-day-toggle .form-check-input { margin: 0; }
+.weekly-day-card.is-unavailable .weekly-day-header h3 { color: #8a96a5; }
+.weekly-day-ranges { display: grid; gap: 8px; }
+.weekly-time-range { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) auto; align-items: end; gap: 8px; }
+.weekly-time-field { display: grid; min-width: 0; gap: 4px; color: #738493; font-size: .67rem; }
+.weekly-time-field .form-control { min-width: 0; }
+.weekly-time-preview { min-height: 15px; color: #53698a; font-size: .68rem; font-weight: 600; }
+.weekly-remove-range { white-space: nowrap; }
+.weekly-day-card > [data-add-range] { margin-top: 9px; }
+.weekly-day-card.is-unavailable [data-add-range] { opacity: .7; }
+.page-content[data-clinic-page="schedules"] .clinic-table { min-width: 850px; }
+.page-content[data-clinic-page="schedules"] .clinic-table tbody td { vertical-align: top; white-space: normal; }
+.weekly-doctor-cell { width: 190px; min-width: 165px; }
+.weekly-doctor-cell > * { display: block; }
+.weekly-doctor-name { color: #29384c; font-family: 'Manrope',sans-serif; font-size: .9rem; }
+.weekly-doctor-cell small { margin-top: 5px; color: #9a6b3c; font-size: .68rem; }
+.weekly-availability-cell { min-width: 540px; }
+.weekly-overall-state { margin-bottom: 9px; }
+.weekly-overall-state .status-schedule-active { background: #e9f7ee; color: #4b9561; }
+.weekly-overall-state .status-no-active-days { background: #fff4df; color: #a57928; }
+.weekly-overall-state .status-doctor-inactive { background: #fff0ef; color: #c56861; }
+.weekly-availability-list { display: grid; gap: 5px; }
+.weekly-availability-day { display: grid; grid-template-columns: 105px minmax(0,1fr); align-items: start; gap: 10px; padding: 5px 8px; border-radius: 7px; background: #f8f9fb; }
+.weekly-availability-day > strong { padding-top: 4px; color: #5b6b80; font-size: .7rem; }
+.weekly-availability-ranges { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.weekly-range { display: inline-flex; max-width: 100%; flex-wrap: wrap; align-items: center; gap: 6px; padding: 3px 6px 3px 9px; border: 1px solid #e3ebf4; border-radius: 8px; background: #fff; }
+.weekly-range-hours { color: #334258; font-size: .72rem; font-weight: 700; white-space: nowrap; }
+.weekly-range-state { color: #4b9561; font-size: .62rem; font-weight: 700; }
+.weekly-range.is-inactive { border-style: dashed; background: #f2f4f7; }
+.weekly-range.is-inactive .weekly-range-hours,.weekly-range.is-inactive .weekly-range-state { color: #8491a0; }
+.weekly-range .btn { margin: 0 !important; padding: 2px 6px; font-size: .62rem; }
+.weekly-unavailable { padding: 4px 0; color: #9aa5b1; font-size: .7rem; font-style: italic; }
+.weekly-doctor-actions { min-width: 165px; white-space: nowrap !important; }
 .clinic-toast { border: 1px solid #e6ebf2; border-radius: 12px; box-shadow: 0 12px 35px rgba(28,52,84,.15); }
 .clinic-detail-dialog { width: min(760px,calc(100% - 28px)); max-height: calc(100dvh - 28px); margin: auto; padding: 0; overflow: auto; border: 1px solid #e6ebf3; border-radius: 20px; background: #fff; color: #243247; box-shadow: 0 24px 80px rgba(19,36,65,.25); }
 .clinic-detail-dialog::backdrop { background: rgba(19,32,52,.48); backdrop-filter: blur(3px); }
@@ -330,6 +374,7 @@ a { color: var(--clinic-primary); }
     .report-filter-controls .filter-control { flex: 1 1 145px; }
     .report-filter-spacer { display: none; }
     .report-section-heading { align-items: flex-start; }
+    .weekly-schedule-grid { grid-template-columns: 1fr; }
     .page-content[data-app-role="Receptionist"] .table-tools { justify-content: flex-start; }
     .page-content[data-app-role="Receptionist"] .appointment-search { flex-basis: min(100%, 250px); }
     .page-content[data-dashboard-role="Receptionist"] .dashboard-appointments table { min-width: 560px; }
@@ -349,6 +394,8 @@ a { color: var(--clinic-primary); }
     .report-filter-controls .filter-control { flex-basis: 100%; }
     .report-date-separator { display: none; }
     .report-section-heading { flex-direction: column; }
+    .weekly-time-range { grid-template-columns: 1fr 1fr; }
+    .weekly-remove-range { grid-column: 1 / -1; justify-self: start; }
     .report-chart-wrap { min-height: 205px; padding: 0 8px 10px; }
     .report-chart { min-height: 195px; }
     .report-chart svg { min-height: 190px; }

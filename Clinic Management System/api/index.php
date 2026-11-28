@@ -147,9 +147,8 @@ try {
             if(count($days)!==7)cliniccare_json(['error'=>'Each weekday must appear exactly once.'],422);
             ksort($days);
             cliniccare_transaction($pdo,function()use($pdo,$doctorId,$days){
-                $doctor=$pdo->prepare('SELECT d.doctor_id,d.status,u.status AS account_status FROM doctors d JOIN users u ON u.user_id=d.user_id WHERE d.doctor_id=? FOR UPDATE');$doctor->execute([$doctorId]);$profile=$doctor->fetch();
-                if(!$profile)cliniccare_json(['error'=>'Doctor not found.'],404);
-                if(strcasecmp((string)$profile['status'],'Active')!==0||strcasecmp((string)$profile['account_status'],'Active')!==0)cliniccare_json(['error'=>'Only doctors with an active profile and account can be scheduled.'],422);
+                $doctor=$pdo->prepare('SELECT doctor_id FROM doctors WHERE doctor_id=? FOR UPDATE');$doctor->execute([$doctorId]);
+                if(!$doctor->fetch())cliniccare_json(['error'=>'Doctor not found.'],404);
                 $scheduleQuery=$pdo->prepare('SELECT schedule_id,available_day,start_time,end_time,status FROM doctor_schedules WHERE doctor_id=? ORDER BY available_day,schedule_id FOR UPDATE');$scheduleQuery->execute([$doctorId]);$existing=$scheduleQuery->fetchAll();$byDay=[];
                 foreach($existing as $schedule)$byDay[(int)$schedule['available_day']][]=$schedule;
                 $appointments=$pdo->prepare("SELECT appointment_date,appointment_time,duration_minutes,WEEKDAY(appointment_date)+1 AS available_day FROM appointments WHERE doctor_id=? AND status IN ('Scheduled','Completed','No-show') AND appointment_date>=CURRENT_DATE ORDER BY appointment_date,appointment_time");$appointments->execute([$doctorId]);
@@ -189,6 +188,8 @@ try {
             elseif(in_array($user['role'],['Admin','Receptionist'],true)){$where=' WHERE 1=1';$args=[];}
             else cliniccare_json(['error'=>'Not authorized.'],403);
             if($id){$where.=' AND a.appointment_id=?';$args[]=$id;}
+            if(($_GET['today']??'')==='1')$where.=' AND a.appointment_date=CURRENT_DATE';
+            if(($_GET['upcoming']??'')==='1')$where.=" AND a.appointment_date>=CURRENT_DATE AND a.status='Scheduled'";
             if(isset($_GET['date'])&&$_GET['date']!==''){$d=cliniccare_date((string)$_GET['date'],'Date');$where.=' AND a.appointment_date=?';$args[]=$d->format('Y-m-d');}
             if(isset($_GET['status'])&&$_GET['status']!==''){$where.=' AND a.status=?';$args[]=cliniccare_status((string)$_GET['status'],['Scheduled','Completed','Cancelled','No-show']);}
             if(isset($_GET['doctor_id'])&&in_array($user['role'],$admin,true)){$where.=' AND a.doctor_id=?';$args[]=(int)$_GET['doctor_id'];}

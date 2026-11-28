@@ -71,6 +71,7 @@ $pageFilters = $pageFilters ?? [];
                         <button class="btn btn-outline-secondary btn-sm" type="button" data-refresh>Refresh</button>
                     </div>
                 </div>
+                <?php if ($pageKey === 'appointments'): ?><div class="alert alert-info d-none mb-0" role="status" aria-live="polite" data-appointment-filter-notice></div><?php endif; ?>
                 <div class="table-responsive" data-table-region aria-live="polite"><table class="table clinic-table mb-0" data-clinic-table><thead><tr data-table-head></tr></thead><tbody data-table-body><tr><td>Loading…</td></tr></tbody></table></div>
                 <div class="data-card-footer"><span>Live records from ClinicCare</span><span>Updates save to the database</span></div>
             </section>
