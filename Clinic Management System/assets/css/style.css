@@ -260,12 +260,29 @@ a { color: var(--clinic-primary); }
 .appointment-schedule-guidance { white-space: normal; line-height: 1.55; overflow-wrap: anywhere; }
 .page-content[data-app-role="Receptionist"] .record-actions { min-width: max-content; }
 .page-content[data-app-role="Receptionist"] .record-actions .btn { margin: 0 5px 0 0 !important; white-space: nowrap; }
-.page-content[data-app-role="Receptionist"] .report-empty-state td { padding: 16px; background: #fbfcff; color: #6f7f93 !important; }
-.report-shortcuts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
-.report-shortcut { display: flex; min-height: 81px; align-items: center; gap: 12px; padding: 14px; border: 1px solid #edf0f5; border-radius: 12px; background: #fff; color: #536276; text-align: left; box-shadow: 0 5px 14px rgba(34,57,89,.04); }
-.report-shortcut:hover { border-color: #cfdbf8; background: #fbfcff; }
-.report-shortcut > span:nth-child(2) { display: grid; flex: 1; gap: 4px; }.report-shortcut strong { color: #334258; font-size: .78rem; }.report-shortcut small { color: #909dab; font-size: .68rem; }
-.report-icon { display: inline-grid; width: 37px; height: 37px; place-items: center; border-radius: 10px; font-size: 1.05rem; }.report-icon-blue { background: #eaf0ff; color: #3968d8; }.report-icon-green { background: #eaf7ed; color: #43a363; }.report-icon-violet { background: #f1ebff; color: #8056cc; }
+.report-filter-card { display: grid; gap: 14px; padding: 15px 17px; border: 1px solid #edf0f5; border-radius: 15px; background: #fff; box-shadow: 0 6px 18px rgba(34,57,89,.055); }
+.report-presets,.report-filter-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.report-presets .btn { min-height: 34px; }
+.report-presets .btn.active { border-color: #2f63df; background: #eaf0ff; color: #2853b8; }
+.report-filter-controls .filter-control { flex: 0 1 168px; }
+.report-filter-controls .form-control { min-width: 0; }
+.report-date-separator { color: #8b98a8; font-size: .76rem; }
+.report-filter-spacer { flex: 1 1 auto; }
+.report-metric-grid .metric-card { min-width: 0; }
+.report-section-heading { min-height: 72px; padding: 17px 20px; }
+.report-view-control .form-select { min-width: 116px; }
+.report-chart-wrap { min-height: 260px; padding: 0 18px 14px; }
+.report-chart { width: 100%; min-height: 250px; }
+.report-chart svg { display: block; width: 100%; height: auto; min-height: 230px; overflow: visible; }
+.report-chart-gridline { stroke: #e9eef5; stroke-width: 1; }
+.report-chart-axis { fill: #8290a1; font: 11px 'DM Sans',sans-serif; }
+.report-chart-value { fill: #385da9; font: 700 11px 'DM Sans',sans-serif; }
+.report-chart-line { fill: none; stroke: #2f63df; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.report-chart-point { fill: #fff; stroke: #2f63df; stroke-width: 3; }
+.report-empty-chart { display: grid; min-height: 230px; place-items: center; margin: 0; color: #8794a2; font-size: .84rem; text-align: center; }
+.report-doctor-card .clinic-table { min-width: 720px; }
+.report-doctor-card .clinic-table tbody td:nth-child(n+3) { font-variant-numeric: tabular-nums; }
+.report-print-header { display: none; }
 .clinic-toast { border: 1px solid #e6ebf2; border-radius: 12px; box-shadow: 0 12px 35px rgba(28,52,84,.15); }
 .clinic-detail-dialog { width: min(760px,calc(100% - 28px)); max-height: calc(100dvh - 28px); margin: auto; padding: 0; overflow: auto; border: 1px solid #e6ebf3; border-radius: 20px; background: #fff; color: #243247; box-shadow: 0 24px 80px rgba(19,36,65,.25); }
 .clinic-detail-dialog::backdrop { background: rgba(19,32,52,.48); backdrop-filter: blur(3px); }
@@ -310,7 +327,9 @@ a { color: var(--clinic-primary); }
     .hero-action { min-height: 38px; padding: 0 10px; font-size: .7rem; }
     .quick-action-grid { grid-template-columns: 1fr; }
     .quick-action { min-height: 105px; }
-    .report-shortcuts { grid-template-columns: 1fr; }
+    .report-filter-controls .filter-control { flex: 1 1 145px; }
+    .report-filter-spacer { display: none; }
+    .report-section-heading { align-items: flex-start; }
     .page-content[data-app-role="Receptionist"] .table-tools { justify-content: flex-start; }
     .page-content[data-app-role="Receptionist"] .appointment-search { flex-basis: min(100%, 250px); }
     .page-content[data-dashboard-role="Receptionist"] .dashboard-appointments table { min-width: 560px; }
@@ -326,6 +345,14 @@ a { color: var(--clinic-primary); }
     .data-card-heading { align-items: flex-start; }
     .table-tools { flex-wrap: wrap; justify-content: flex-end; }
     .data-card-footer { flex-direction: column; }
+    .report-filter-controls > .btn { flex: 1 1 calc(50% - 8px); }
+    .report-filter-controls .filter-control { flex-basis: 100%; }
+    .report-date-separator { display: none; }
+    .report-section-heading { flex-direction: column; }
+    .report-chart-wrap { min-height: 205px; padding: 0 8px 10px; }
+    .report-chart { min-height: 195px; }
+    .report-chart svg { min-height: 190px; }
+    .report-empty-chart { min-height: 185px; }
     .page-content[data-dashboard-role="Receptionist"] .metric-grid { grid-template-columns: 1fr; }
     .page-content[data-app-role="Receptionist"] .appointment-search { flex-basis: 100%; }
     .page-content[data-app-role="Receptionist"] .appointment-search-submit { min-width: 78px; }

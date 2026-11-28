@@ -96,7 +96,7 @@
             fields: [
                 {name:'full_name',label:'Full name',required:true,max:120},
                 {name:'birth_date',label:'Birth date',type:'date',required:true},
-                {name:'gender',label:'Gender',required:true,max:30,help:'Enter the value approved by the clinic.'},
+                {name:'gender',label:'Gender',type:'select',placeholder:'Select Gender',options:['Male','Female','Prefer not to say'],required:true,max:30,help:'Choose the option provided by the patient.'},
                 {name:'contact_number',label:'Contact number',required:true,max:30},
                 {name:'address',label:'Address',required:true,max:255},
             ],
@@ -144,15 +144,9 @@
             ],
         },
         schedules: {
-            resource: 'schedules', title: 'schedule', count: 'schedules',
+            resource: 'schedules', title: 'weekly availability', count: 'schedules',
             columns: [['doctor_name','Doctor'],['day_name','Available day'],['start_time','Start'],['end_time','End'],['status','Status']],
-            fields: [
-                {name:'doctor_id',label:'Doctor',type:'select',source:'doctors',value:'doctor_id',text:'full_name',required:true,createOnly:true},
-                {name:'available_day',label:'Available day',type:'select',options:[['1','Monday'],['2','Tuesday'],['3','Wednesday'],['4','Thursday'],['5','Friday'],['6','Saturday'],['7','Sunday']],required:true},
-                {name:'start_time',label:'Start time',type:'time',required:true},
-                {name:'end_time',label:'End time',type:'time',required:true},
-                {name:'status',label:'Status',type:'select',options:['Active','Inactive']},
-            ],
+            fields: [],
         },
         'medical-records': {
             resource: 'medical-records', title: 'medical record', count: 'medical records',
@@ -164,11 +158,6 @@
                 {name:'notes',label:'Notes',type:'textarea'},
                 {name:'consultation_date',label:'Consultation date',type:'date',required:true},
             ],
-        },
-        reports: {
-            resource: 'reports', title: 'report', count: 'report rows',
-            columns: [['report','Report'],['summary','Summary'],['period','Period']],
-            fields: [],
         },
     };
 
@@ -208,7 +197,12 @@
     };
 
     const asArray = (payload) => Array.isArray(payload?.data) ? payload.data : [];
-    const labelForAppointment = (row) => `#${row.appointment_id} - ${row.patient_name || 'Patient'} / ${row.appointment_date} ${String(row.appointment_time || '').slice(0,5)} (${row.status})`;
+    const formatAppointmentTime = (value) => {
+        const [hour,minute]=String(value||'').split(':').map(Number);
+        if(!Number.isInteger(hour)||!Number.isInteger(minute))return String(value||'');
+        return new Date(2000,0,1,hour,minute).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    };
+    const labelForAppointment = (row) => `#${row.appointment_id} - ${row.patient_name || 'Patient'} / ${row.appointment_date} ${formatAppointmentTime(row.appointment_time)} (${row.status})`;
     const loadOptions = async (field) => {
         if (!field.source) return (field.options || []).map((item) => Array.isArray(item) ? item : [item, item]);
         const payload = await request(field.source);
@@ -284,7 +278,7 @@
             cfg.columns.forEach(([key]) => {
                 const td=document.createElement('td'); let value=row[key] ?? '';
                 if (key === 'available_day') value=dayName(value);
-                if (key === 'appointment_time' || key === 'start_time' || key === 'end_time') value=String(value).slice(0,5);
+                if (key === 'appointment_time' || key === 'start_time' || key === 'end_time') value=formatAppointmentTime(value);
                 if (key === 'consultation_date') value=String(value).replace('T',' ');
                 if (key === 'status' || key === 'account_status') td.append(statusPill(value)); else td.textContent=String(value);
                 tr.append(td);
@@ -292,20 +286,100 @@
             if (canEdit) tr.append(rowActions(row));
             tbody.append(tr);
         });
-        if (pageType === 'reports' && role === 'Receptionist' && Number(records.find((row) => row.report === 'All appointments')?.summary ?? 0) === 0) {
-            const tr=document.createElement('tr'); tr.className='empty-table-row report-empty-state';
-            const td=document.createElement('td'); td.colSpan=cfg.columns.length; td.textContent='No appointments match this date range.';
-            tr.append(td); tbody.append(tr);
-        }
     };
 
-    const reportRows = (payload) => {
-        const rows = [];
-        (payload.by_status || []).forEach((row) => rows.push({report:`Appointments - ${row.status}`,summary:row.total,period:`${payload.from} to ${payload.to}`}));
-        (payload.by_doctor || []).forEach((row) => rows.push({report:`${row.doctor_name}`,summary:`${row.total} appointments`,period:`${payload.from} to ${payload.to}`}));
-        rows.unshift({report:'All patients',summary:payload.patients_total ?? 0,period:'Current total'});
-        rows.unshift({report:'All appointments',summary:payload.appointments_total ?? 0,period:`${payload.from} to ${payload.to}`} );
-        return rows;
+    let currentReportPayload = null;
+    const reportDateInputs = {from:page.querySelector('[data-report-from]'),to:page.querySelector('[data-report-to]')};
+    const reportDateText = (value) => {
+        const [year,month,day]=String(value||'').split('-').map(Number);
+        return year&&month&&day?new Date(year,month-1,day).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}):String(value||'');
+    };
+    const reportEscape = (value) => String(value??'').replace(/[&<>"']/g,(char)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    const reportCsvCell = (value) => {
+        let text=String(value??'');
+        if(/^[\t\r ]*[=+\-@]/.test(text))text=`'${text}`;
+        return `"${text.replaceAll('"','""')}"`;
+    };
+    const reportSetPresetActive = (preset) => page.querySelectorAll('[data-report-preset]').forEach((button)=>{
+        const active=button.dataset.reportPreset===preset;
+        button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));
+    });
+    const reportSetRange = (preset) => {
+        const now=new Date(),end=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+        let start=new Date(end);
+        if(preset==='week'){const day=(end.getDay()+6)%7;start.setDate(end.getDate()-day);end.setDate(start.getDate()+6);}
+        else if(preset==='month'){start.setDate(1);end.setMonth(end.getMonth()+1,0);}
+        const toIso=(date)=>`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        reportDateInputs.from.value=toIso(start);reportDateInputs.to.value=toIso(end);reportSetPresetActive(preset);
+    };
+    const drawReportChart = (points) => {
+        const host=page.querySelector('[data-report-chart]'),empty=page.querySelector('[data-report-chart-empty]');
+        if(!host||!empty)return;
+        host.replaceChildren();
+        if(!points?.length){host.classList.add('d-none');empty.classList.remove('d-none');return;}
+        host.classList.remove('d-none');empty.classList.add('d-none');
+        const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');
+        svg.setAttribute('viewBox','0 0 760 270');svg.setAttribute('role','img');svg.setAttribute('aria-label','Appointment counts over time');
+        const max=Math.max(1,...points.map((item)=>Number(item.total)||0)),left=56,right=24,top=24,bottom=54,width=760-left-right,height=270-top-bottom;
+        const add=(name,attrs,textValue)=>{const el=document.createElementNS(ns,name);Object.entries(attrs).forEach(([key,value])=>el.setAttribute(key,String(value)));if(textValue!==undefined)el.textContent=textValue;svg.append(el);return el;};
+        for(let tick=0;tick<=4;tick++){const y=top+height-(height*tick/4),value=Math.round(max*tick/4);add('line',{x1:left,y1:y,x2:760-right,y2:y,class:'report-chart-gridline'});add('text',{x:left-12,y:y+4,'text-anchor':'end',class:'report-chart-axis'},String(value));}
+        const step=points.length>1?width/(points.length-1):0;
+        const coords=points.map((item,index)=>({x:points.length===1?left+width/2:left+index*step,y:top+height-(Number(item.total)||0)/max*height,item}));
+        if(coords.length>1)add('polyline',{points:coords.map(({x,y})=>`${x},${y}`).join(' '),class:'report-chart-line'});
+        coords.forEach(({x,y,item},index)=>{
+            add('circle',{cx:x,cy:y,r:5,class:'report-chart-point'});
+            add('text',{x,y:y-11,'text-anchor':'middle',class:'report-chart-value'},String(Number(item.total)||0));
+            const label=String(item.label||'');
+            const display=label.length>11?label.slice(5):label;
+            if(points.length<=12||index===0||index===points.length-1||index%Math.ceil(points.length/10)===0)add('text',{x,y:top+height+26,'text-anchor':'middle',class:'report-chart-axis'},display);
+        });
+        host.append(svg);
+    };
+    const renderReport = (payload) => {
+        currentReportPayload=payload;
+        const summary=payload.summary||{};
+        page.querySelector('[data-report-stat="appointments"]').textContent=String(summary.total??0);
+        page.querySelector('[data-report-stat="patients"]').textContent=String(payload.patients_total??0);
+        page.querySelector('[data-report-stat="pending"]').textContent=String(summary.pending??0);
+        page.querySelector('[data-report-stat="completed"]').textContent=String(summary.completed??0);
+        page.querySelector('[data-report-period]').textContent=`${reportDateText(payload.from)} – ${reportDateText(payload.to)}`;
+        drawReportChart(payload.trend||[]);
+        const body=page.querySelector('[data-report-doctors]');body.replaceChildren();
+        if(!(Number(summary.total)||0)){
+            const tr=document.createElement('tr');tr.className='empty-table-row';const td=document.createElement('td');td.colSpan=5;td.textContent='No appointments match this date range.';tr.append(td);body.append(tr);return;
+        }
+        (payload.by_doctor||[]).filter((row)=>Number(row.total)>0).forEach((row)=>{
+            const tr=document.createElement('tr');
+            [row.doctor_name,row.specialization,row.total,row.pending,row.completed].forEach((value)=>{const td=document.createElement('td');td.textContent=String(value??0);tr.append(td);});
+            body.append(tr);
+        });
+        if(!body.children.length){const tr=document.createElement('tr');tr.className='empty-table-row';const td=document.createElement('td');td.colSpan=5;td.textContent='No appointments match this date range.';tr.append(td);body.append(tr);}
+    };
+    const loadReports = async () => {
+        const from=reportDateInputs.from?.value,to=reportDateInputs.to?.value;
+        if(!from||!to){showFeedback('Choose both a start date and an end date.','error');return;}
+        if(from>to){showFeedback('The start date must be on or before the end date.','error');return;}
+        try{
+            const granularity=page.querySelector('[data-report-granularity]')?.value||'daily';
+            const payload=await request('reports',{params:{from,to,granularity}});renderReport(payload);
+            const feedback=page.querySelector('[data-feedback]');feedback?.classList.add('d-none');
+        }catch(error){showFeedback(error.message,'error');}
+    };
+    const exportReportCsv = () => {
+        if(!currentReportPayload)return;
+        const p=currentReportPayload,rows=[['ClinicCare report','Date range',`${p.from} to ${p.to}`],[],['Summary','Value'],['Total appointments',p.summary?.total??0],['Total patients',p.patients_total??0],['Pending appointments',p.summary?.pending??0],['Completed appointments',p.summary?.completed??0],[],['Appointment trends',p.granularity],['Period','Appointments'],...(p.trend||[]).map((row)=>[row.label,row.total]),[],['Doctor name','Specialization','Total appointments','Pending appointments','Completed appointments'],...(p.by_doctor||[]).filter((row)=>Number(row.total)>0).map((row)=>[row.doctor_name,row.specialization,row.total,row.pending,row.completed])];
+        const csv=rows.map((row)=>row.map(reportCsvCell).join(',')).join('\r\n');
+        const url=URL.createObjectURL(new Blob(['\uFEFF',csv],{type:'text/csv;charset=utf-8'}));
+        const link=document.createElement('a');link.href=url;link.download=`cliniccare-report-${p.from}-to-${p.to}.csv`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    };
+    const exportReportPdf = () => {
+        if(!currentReportPayload)return;
+        const p=currentReportPayload,w=window.open('','_blank');
+        if(!w){showFeedback('Allow pop-ups for ClinicCare to open the printable report.','warning');return;}
+        w.opener=null;
+        const doctors=(p.by_doctor||[]).filter((row)=>Number(row.total)>0).map((row)=>`<tr><td>${reportEscape(row.doctor_name)}</td><td>${reportEscape(row.specialization)}</td><td>${Number(row.total)||0}</td><td>${Number(row.pending)||0}</td><td>${Number(row.completed)||0}</td></tr>`).join('');
+        const trends=(p.trend||[]).map((row)=>`<tr><td>${reportEscape(row.label)}</td><td>${Number(row.total)||0}</td></tr>`).join('');
+        w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>ClinicCare report</title><style>body{font:14px Arial,sans-serif;color:#243247;margin:36px}h1{color:#2855bd;margin-bottom:4px}h2{margin-top:28px;color:#334258;font-size:18px}.muted{color:#738493}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{text-align:left;border-bottom:1px solid #e4ebf0;padding:9px}th{background:#f3f6fc;color:#536276} .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:24px}.stat{border:1px solid #e4ebf0;border-radius:8px;padding:14px}.stat strong{display:block;font-size:22px;margin-top:8px}@media print{body{margin:15mm}}</style></head><body><h1>ClinicCare</h1><div class="muted">Clinic appointments and performance report · ${reportEscape(p.from)} to ${reportEscape(p.to)}</div><div class="stats"><div class="stat">Total appointments<strong>${Number(p.summary?.total)||0}</strong></div><div class="stat">Total patients<strong>${Number(p.patients_total)||0}</strong></div><div class="stat">Pending appointments<strong>${Number(p.summary?.pending)||0}</strong></div><div class="stat">Completed appointments<strong>${Number(p.summary?.completed)||0}</strong></div></div><h2>Appointment trends (${reportEscape(p.granularity)})</h2><table><thead><tr><th>Period</th><th>Appointments</th></tr></thead><tbody>${trends||'<tr><td colspan="2">No appointments match this date range.</td></tr>'}</tbody></table><h2>Appointments by doctor</h2><table><thead><tr><th>Doctor Name</th><th>Specialization</th><th>Total</th><th>Pending</th><th>Completed</th></tr></thead><tbody>${doctors||'<tr><td colspan="5">No appointments match this date range.</td></tr>'}</tbody></table><script>window.addEventListener('load',()=>window.print());</script></body></html>`);w.document.close();
     };
 
     const loadManagement = async () => {
@@ -313,21 +387,12 @@
         if (!cfg) return;
         if (countLabel) countLabel.textContent='Loading records…';
         try {
-            let payload;
-            if (pageType === 'reports') {
-                const from = page.querySelector('[data-report-from]')?.value;
-                const to = page.querySelector('[data-report-to]')?.value;
-                payload = await request('reports',{params:{from,to}});
-                records = reportRows(payload);
-                cfg.columns=[['report','Report'],['summary','Summary'],['period','Period']];
-            } else {
-                const params={};
-                if (['patients','appointments'].includes(pageType) && searchInput?.value.trim()) params.q=searchInput.value.trim();
-                if (pageType === 'appointments' && statusFilter?.value) params.status=statusFilter.value;
-                if (pageType === 'appointments' && dateFilter?.value) params.date=dateFilter.value;
-                payload = await request(cfg.resource,{params});
-                records=asArray(payload);
-            }
+            const params={};
+            if (['patients','appointments'].includes(pageType) && searchInput?.value.trim()) params.q=searchInput.value.trim();
+            if (pageType === 'appointments' && statusFilter?.value) params.status=statusFilter.value;
+            if (pageType === 'appointments' && dateFilter?.value) params.date=dateFilter.value;
+            const payload = await request(cfg.resource,{params});
+            records=asArray(payload);
             if (pageType === 'schedules') {
                 const doctors=asArray(await request('doctors'));
                 const names=new Map(doctors.map((doctor)=>[Number(doctor.doctor_id),doctor.full_name]));
@@ -350,6 +415,75 @@
         }
     };
 
+    const buildWeeklyScheduleEditor = async (scheduleRow = null) => {
+        const title=document.createElement('h2');title.className='h5 mb-3';title.textContent=scheduleRow?'Edit weekly availability':'Set weekly availability';form.append(title);
+        const intro=document.createElement('p');intro.className='text-secondary small mb-3';intro.textContent='Choose available days and set one or more working time ranges for each day. Times must stay within 7:00 AM–7:00 PM.';form.append(intro);
+        const doctorField=document.createElement('div');doctorField.className='mb-4';
+        const doctorLabel=document.createElement('label');doctorLabel.className='form-label';doctorLabel.htmlFor='weekly-doctor';doctorLabel.textContent='Doctor';
+        const doctorSelect=document.createElement('select');doctorSelect.className='form-select';doctorSelect.id='weekly-doctor';doctorSelect.required=true;
+        const doctorPlaceholder=document.createElement('option');doctorPlaceholder.value='';doctorPlaceholder.textContent='Select a doctor';doctorSelect.append(doctorPlaceholder);
+        const doctors=asArray(await request('doctors'));
+        doctors.forEach((doctor)=>{const option=document.createElement('option');option.value=String(doctor.doctor_id);option.textContent=`${doctor.full_name}${doctor.status==='Active'&&doctor.account_status==='Active'?'':' (Inactive)'}`;doctorSelect.append(option);});
+        doctorField.append(doctorLabel,doctorSelect);form.append(doctorField);
+        const dayList=document.createElement('div');dayList.className='weekly-schedule-grid';form.append(dayList);
+        const weekdayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+        const dayCards=new Map();
+        const makeRange=(card,dayName,start='07:00',end='19:00')=>{
+            const range=document.createElement('div');range.className='weekly-time-range';range.dataset.timeRange='';
+            const startLabel=document.createElement('label');startLabel.className='weekly-time-field';startLabel.textContent='Start time (AM/PM)';
+            const startInput=document.createElement('input');startInput.type='time';startInput.className='form-control form-control-sm';startInput.value=String(start).slice(0,5);startInput.min='07:00';startInput.max='19:00';startInput.step='60';startInput.dataset.startTime='';startInput.setAttribute('aria-label',`${dayName} start time`);startLabel.append(startInput);
+            const endLabel=document.createElement('label');endLabel.className='weekly-time-field';endLabel.textContent='End time (AM/PM)';
+            const endInput=document.createElement('input');endInput.type='time';endInput.className='form-control form-control-sm';endInput.value=String(end).slice(0,5);endInput.min='07:00';endInput.max='19:00';endInput.step='60';endInput.dataset.endTime='';endInput.setAttribute('aria-label',`${dayName} end time`);endLabel.append(endInput);
+            const remove=document.createElement('button');remove.type='button';remove.className='btn btn-sm btn-outline-secondary weekly-remove-range';remove.textContent='Remove range';remove.setAttribute('aria-label',`Remove ${dayName} time range`);
+            remove.addEventListener('click',()=>{range.remove();updateDay(card);});range.append(startLabel,endLabel,remove);card.querySelector('[data-weekly-ranges]').append(range);updateDay(card);return range;
+        };
+        const updateDay=(card)=>{
+            const enabled=card.querySelector('[data-day-enabled]').checked;
+            card.classList.toggle('is-unavailable',!enabled);
+            card.querySelector('[data-day-state]').textContent=enabled?'Available':'Unavailable';
+            card.querySelectorAll('input[data-start-time],input[data-end-time]').forEach((input)=>{input.disabled=!enabled;input.required=enabled;});
+            card.querySelector('[data-add-range]').disabled=!enabled;
+        };
+        weekdayNames.forEach((name,index)=>{
+            const card=document.createElement('section');card.className='weekly-day-card is-unavailable';card.dataset.weeklyDay=String(index+1);
+            const header=document.createElement('div');header.className='weekly-day-header';
+            const heading=document.createElement('h3');heading.textContent=name;
+            const switchLabel=document.createElement('label');switchLabel.className='weekly-day-toggle';
+            const toggle=document.createElement('input');toggle.type='checkbox';toggle.className='form-check-input';toggle.dataset.dayEnabled='';toggle.setAttribute('aria-label',`${name} available`);
+            const state=document.createElement('span');state.dataset.dayState='';state.textContent='Unavailable';switchLabel.append(toggle,state);header.append(heading,switchLabel);
+            const ranges=document.createElement('div');ranges.className='weekly-day-ranges';ranges.dataset.weeklyRanges='';
+            const add=document.createElement('button');add.type='button';add.className='btn btn-sm btn-outline-secondary';add.dataset.addRange='';add.textContent='＋ Add time range';
+            add.addEventListener('click',()=>makeRange(card,name));toggle.addEventListener('change',()=>updateDay(card));
+            card.append(header,ranges,add);dayList.append(card);dayCards.set(index+1,card);updateDay(card);
+        });
+        const scheduleWarning=document.createElement('div');scheduleWarning.className='alert alert-warning d-none mt-3';scheduleWarning.setAttribute('role','status');form.append(scheduleWarning);
+        const feedbackRow=document.createElement('div');feedbackRow.className='d-flex flex-wrap gap-2 mt-3';
+        const save=document.createElement('button');save.type='submit';save.className='btn btn-primary';save.textContent='Save weekly availability';
+        const close=document.createElement('button');close.type='button';close.className='btn btn-outline-secondary';close.textContent='Close';close.addEventListener('click',()=>form.classList.add('d-none'));feedbackRow.append(save,close);form.append(feedbackRow);
+        const populate=async(doctorId)=>{
+            scheduleWarning.classList.add('d-none');
+            for(const [day,card] of dayCards){card.querySelector('[data-weekly-ranges]').replaceChildren();card.querySelector('[data-day-enabled]').checked=false;updateDay(card);}
+            if(!doctorId)return;
+            save.disabled=true;
+            try{
+                const rows=asArray(await request('schedules',{params:{doctor_id:doctorId}}));
+                const byDay=new Map();rows.forEach((item)=>{const day=Number(item.available_day);if(!byDay.has(day))byDay.set(day,[]);byDay.get(day).push(item);});
+                byDay.forEach((items,day)=>{
+                    const card=dayCards.get(day);if(!card)return;
+                    const active=items.filter((item)=>item.status==='Active');card.querySelector('[data-day-enabled]').checked=active.length>0;
+                    const ranges=items.length?items:[];
+                    ranges.forEach((item)=>makeRange(card,weekdayNames[day-1],item.start_time,item.end_time));
+                    if(!ranges.length)makeRange(card,weekdayNames[day-1]);
+                    updateDay(card);
+                });
+            }catch(error){showFeedback(error.message,'error');}
+            finally{save.disabled=false;}
+        };
+        doctorSelect.addEventListener('change',()=>populate(doctorSelect.value));
+        if(scheduleRow){doctorSelect.value=String(scheduleRow.doctor_id);doctorSelect.disabled=true;await populate(scheduleRow.doctor_id);}
+        else if(doctors.length===1){doctorSelect.value=String(doctors[0].doctor_id);await populate(doctorSelect.value);}
+    };
+
     const makeField = async (field, data, mode) => {
         const wrapper=document.createElement('div'); wrapper.className='col-12 col-md-6 mb-3';
         const id=`field-${field.name}-${Math.random().toString(36).slice(2)}`;
@@ -358,9 +492,12 @@
         if (field.type === 'textarea') { input=document.createElement('textarea'); input.rows=3; }
         else if (field.type === 'select') {
             input=document.createElement('select'); input.className='form-select';
-            const placeholder=document.createElement('option'); placeholder.value=''; placeholder.textContent='Select an option'; input.append(placeholder);
+            const placeholder=document.createElement('option'); placeholder.value=''; placeholder.textContent=field.placeholder || 'Select an option'; input.append(placeholder);
             const options=await loadOptions(field);
             options.forEach(([value,text])=>{ const option=document.createElement('option'); option.value=String(value); option.textContent=String(text); input.append(option); });
+            if(mode==='edit'&&field.name==='gender'&&data?.gender&&!options.some(([optionValue])=>String(optionValue)===String(data.gender))){
+                const legacy=document.createElement('option');legacy.value=String(data.gender);legacy.textContent=`Existing value: ${data.gender} (keep current)`;input.append(legacy);
+            }
         } else { input=document.createElement('input'); input.type=field.type||'text'; }
         input.id=id; input.name=field.name; if (field.type !== 'select') input.classList.add('form-control');
         if (field.required && !(mode==='edit' && field.createOnly)) input.required=true;
@@ -379,6 +516,7 @@
         if (field.name==='appointment_date' && !value) value=localToday();
         if (field.name==='duration_minutes' && !value) value='30';
         if (value !== undefined && value !== null) input.value=(field.type==='time' ? String(value).slice(0,5) : String(value));
+        if(field.name==='appointment_time'){input.min='07:00';input.max='18:30';input.step='60';}
         if (mode==='edit' && field.createOnly) { input.disabled=true; input.required=false; }
         if (field.help) { const help=document.createElement('small'); help.className='form-text text-secondary'; help.textContent=field.help; wrapper.append(input,help); }
         else wrapper.append(input);
@@ -429,6 +567,12 @@
             timeInput.setCustomValidity('');
             const doctorId=doctorInput.value;
             const selectedDate=dateInput.value;
+            const requestedDuration=Number(durationInput.value||30);
+            const latestStart=19*60-requestedDuration;
+            timeInput.min='07:00';
+            timeInput.max=Number.isInteger(requestedDuration)&&requestedDuration>0&&latestStart>=7*60
+                ? `${String(Math.floor(latestStart/60)).padStart(2,'0')}:${String(latestStart%60).padStart(2,'0')}`
+                : '07:00';
             if(!doctorId){showGuidance('Choose a doctor to view their active working days and hours.');return;}
             const weekly=activeDaySummary();
             if(!selectedDate){showGuidance(`Active working hours: ${weekly}. Choose an appointment date to check that day.`);return;}
@@ -450,6 +594,14 @@
             const duration=Number(durationInput.value);
             const end=start+duration;
             if(!Number.isInteger(duration)||duration<1){showGuidance(`Active working hours: ${weekly}. Enter a valid duration.`,'warning');return;}
+            if(start<7*60){
+                const message='Appointments cannot start before 7:00 AM. Choose a later time.';
+                timeInput.setCustomValidity(message);showGuidance(message,'warning');return;
+            }
+            if(end>19*60){
+                const message=`This appointment ends at ${displayTime(end)}. It must finish by 7:00 PM; choose an earlier time or shorter duration.`;
+                timeInput.setCustomValidity(message);showGuidance(message,'warning');return;
+            }
             if(end>1440){
                 const message='The appointment would continue past midnight. Choose an earlier start time or shorter duration.';
                 timeInput.setCustomValidity(message);showGuidance(message,'warning');return;
@@ -493,6 +645,10 @@
         if (!cfg || !form) return;
         editingRecord=row;
         form.replaceChildren(); form.classList.remove('d-none');
+        if(formEntityType==='schedules'){
+            try{await buildWeeklyScheduleEditor(row);}catch(error){showFeedback(error.message,'error');}
+            form.scrollIntoView({behavior:'smooth',block:'start'});return;
+        }
         const title=document.createElement('h2'); title.className='h5 mb-3'; title.textContent=`${row?'Edit':'Add'} ${cfg.title}`; form.append(title);
         const grid=document.createElement('div'); grid.className='row'; form.append(grid);
         try {
@@ -506,7 +662,7 @@
         const controls=document.createElement('div'); controls.className='d-flex gap-2'; form.append(controls);
         const save=document.createElement('button'); save.type='submit'; save.className='btn btn-primary'; save.textContent=row?'Save changes':'Save'; controls.append(save);
         const cancel=document.createElement('button'); cancel.type='button'; cancel.className='btn btn-outline-secondary'; cancel.textContent='Close'; cancel.addEventListener('click',()=>{form.classList.add('d-none');}); controls.append(cancel);
-        if(role==='Receptionist'&&formEntityType==='appointments')attachAppointmentScheduleGuidance(save);
+        if(['Admin','Receptionist'].includes(role)&&formEntityType==='appointments')attachAppointmentScheduleGuidance(save);
         form.scrollIntoView({behavior:'smooth',block:'start'});
     };
 
@@ -525,6 +681,24 @@
         event.preventDefault();
         if (!form.reportValidity()) return;
         const cfg=configs[formEntityType];
+        if(formEntityType==='schedules'){
+            const days=[...form.querySelectorAll('[data-weekly-day]')].map((card)=>({
+                available_day:Number(card.dataset.weeklyDay),enabled:card.querySelector('[data-day-enabled]').checked,
+                ranges:[...card.querySelectorAll('[data-time-range]')].map((range)=>({start_time:range.querySelector('[data-start-time]').value,end_time:range.querySelector('[data-end-time]').value}))
+            }));
+            for(const day of days)if(day.enabled){
+                if(!day.ranges.length){showFeedback('Add at least one time range for each available day.','error');return;}
+                day.ranges.sort((a,b)=>a.start_time.localeCompare(b.start_time));
+                for(let i=0;i<day.ranges.length;i++){
+                    const range=day.ranges[i];
+                    if(range.end_time<=range.start_time){showFeedback('Each end time must be later than its start time.','error');return;}
+                    if(i>0&&range.start_time<day.ranges[i-1].end_time){showFeedback('Time ranges on the same day cannot overlap. Adjust or remove a range.','error');return;}
+                }
+            }
+            try{const result=await request('schedules/weekly',{method:'PUT',body:{doctor_id:Number(form.querySelector('#weekly-doctor').value),days}});form.classList.add('d-none');showFeedback(result.message||'Weekly availability saved.');await loadManagement();}
+            catch(error){showFeedback(error.message,'error');}
+            return;
+        }
         const payload=collectPayload();
         let resource=cfg.resource; let method='POST';
         if (editingRecord) {
@@ -678,7 +852,7 @@
                 const upcoming=appointments.filter((item)=>item.status==='Scheduled'&&item.appointment_date>=today).slice(0,6);
                 upcoming.forEach((item)=>{
                     const tr=document.createElement('tr');
-                    [item.patient_name,item.doctor_name,`${item.appointment_date} ${String(item.appointment_time||'').slice(0,5)}`].forEach((value)=>{const td=document.createElement('td');td.textContent=String(value||'');tr.append(td);});
+                    [item.patient_name,item.doctor_name,`${item.appointment_date} ${formatAppointmentTime(item.appointment_time)}`].forEach((value)=>{const td=document.createElement('td');td.textContent=String(value||'');tr.append(td);});
                     const td=document.createElement('td');td.append(statusPill(item.status));tr.append(td);recent.append(tr);
                 });
                 if(!upcoming.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=4;td.className='text-center';td.textContent='No upcoming appointments.';tr.append(td);recent.append(tr);}
@@ -690,7 +864,16 @@
     page.querySelector('[data-open-form]')?.addEventListener('click',()=>openForm());
     page.querySelector('[data-refresh]')?.addEventListener('click',()=>loadManagement());
     page.querySelector('[data-search-submit]')?.addEventListener('click',()=>loadManagement());
-    page.querySelector('[data-report-refresh]')?.addEventListener('click',()=>loadManagement());
+    page.querySelectorAll('[data-report-preset]').forEach((button)=>button.addEventListener('click',()=>{
+        const preset=button.dataset.reportPreset;
+        if(preset==='custom'){reportSetPresetActive('custom');return;}
+        reportSetRange(preset);loadReports();
+    }));
+    page.querySelector('[data-report-apply]')?.addEventListener('click',()=>{reportSetPresetActive('custom');loadReports();});
+    page.querySelector('[data-report-reset]')?.addEventListener('click',()=>{reportSetRange('today');loadReports();});
+    page.querySelector('[data-report-granularity]')?.addEventListener('change',()=>loadReports());
+    page.querySelector('[data-report-csv]')?.addEventListener('click',exportReportCsv);
+    page.querySelector('[data-report-pdf]')?.addEventListener('click',exportReportPdf);
     page.querySelector('[data-export-table]')?.addEventListener('click',()=>{
         const output=[configs[pageType].columns.map(([,label])=>label),...records.map((row)=>configs[pageType].columns.map(([key])=>row[key]??''))];
         const csvCell=(value)=>{let text=String(value??'');if(/^[\t\r ]*[=+\-@]/.test(text))text=`'${text}`;return `"${text.replaceAll('"','""')}"`;};
@@ -714,6 +897,7 @@
     statusFilter?.addEventListener('change',()=>loadManagement());
     dateFilter?.addEventListener('change',()=>loadManagement());
     if (pageType==='dashboard') loadDashboard();
+    else if(pageType==='reports'){reportSetRange('today');loadReports();}
     else loadManagement();
     if(new URLSearchParams(location.search).get('new')==='1') page.querySelector('[data-open-form]')?.click();
 

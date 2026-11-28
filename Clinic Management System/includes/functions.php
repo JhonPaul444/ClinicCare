@@ -89,6 +89,22 @@ function cliniccare_appointment_schedule_error(array $activeSchedules, string $d
     return "The appointment ends at {$appointmentEnd}, outside the doctor's active {$dayName} hours ({$available}). Choose a start time and duration that fit fully within one schedule.";
 }
 
+function cliniccare_appointment_operating_hours_error(string $startTime, string $endTime): ?string
+{
+    if ($startTime < '07:00:00') {
+        return 'Appointments cannot start before 7:00 AM. Choose a time between 7:00 AM and 7:00 PM.';
+    }
+    if ($endTime > '19:00:00') {
+        return 'The appointment must finish by 7:00 PM. Choose an earlier start time or shorter duration.';
+    }
+    return null;
+}
+
+function cliniccare_gender_is_allowed(string $gender): bool
+{
+    return in_array($gender, ['Male', 'Female', 'Prefer not to say'], true);
+}
+
 function cliniccare_length(PDO $pdo, string $table, string $column, string $value, string $label, bool $required = true): void
 {
     if ($required && trim($value) === '') cliniccare_json(['error' => "$label is required."], 422);
